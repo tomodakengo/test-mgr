@@ -7,16 +7,16 @@ const prisma = new PrismaClient()
 
 export async function POST(request: Request) {
     try {
-        const { name, email, password } = await request.json()
+        const { username, name, password } = await request.json()
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
-            where: { email },
+            where: { username },
         })
 
         if (existingUser) {
             return NextResponse.json(
-                { error: 'Email already registered' },
+                { error: 'Username already taken' },
                 { status: 400 }
             )
         }
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
         // Create new user
         const user = await prisma.user.create({
             data: {
+                username,
                 name,
-                email,
                 password: hashedPassword,
                 role: 'MEMBER', // Default role
             },
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
         // Generate JWT token
         const token = jwt.sign(
-            { userId: user.id, email: user.email, role: user.role },
+            { userId: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '1d' }
         )
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             user: {
                 id: user.id,
-                email: user.email,
+                username: user.username,
                 name: user.name,
                 role: user.role,
             },
