@@ -1,5 +1,9 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { headers } from "next/headers";
+import { getServerSession } from "@auth/core";
+import AuthContext from "@/context/AuthContext";
+import { authConfig } from "@/lib/auth";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -8,15 +12,17 @@ export const metadata = {
   description: "Web-based software test management tool",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authConfig);
+
   return (
-    <html lang="en">
+    <html lang="ja">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gray-100">{children}</div>
+        <AuthContext session={session}>{children}</AuthContext>
       </body>
     </html>
   );
