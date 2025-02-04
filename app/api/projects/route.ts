@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { getToken } from 'next-auth/jwt'
+import { headers } from 'next/headers'
 
 const prisma = new PrismaClient()
 
 export async function POST(request: Request) {
     try {
-        // Get user from session
-        const token = await getToken({ req: request as any })
-        if (!token) {
+        // Get user from headers
+        const headersList = headers()
+        const userId = headersList.get('x-user-id')
+        if (!userId) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
@@ -25,13 +26,13 @@ export async function POST(request: Request) {
                 members: {
                     create: [
                         {
-                            userId: token.sub as string,
+                            userId,
                             role: 'MANAGER',
                         },
-                        ...members.map((email: string) => ({
+                        ...members.map((username: string) => ({
                             user: {
                                 connect: {
-                                    email: email.trim(),
+                                    username: username.trim(),
                                 },
                             },
                             role: 'MEMBER',
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
                             select: {
                                 id: true,
                                 name: true,
-                                email: true,
+                                username: true,
                             },
                         },
                     },
@@ -66,9 +67,10 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     try {
-        // Get user from session
-        const token = await getToken({ req: request as any })
-        if (!token) {
+        // Get user from headers
+        const headersList = headers()
+        const userId = headersList.get('x-user-id')
+        if (!userId) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
@@ -80,7 +82,7 @@ export async function GET(request: Request) {
             where: {
                 members: {
                     some: {
-                        userId: token.sub as string,
+                        userId,
                     },
                 },
             },
@@ -91,7 +93,7 @@ export async function GET(request: Request) {
                             select: {
                                 id: true,
                                 name: true,
-                                email: true,
+                                username: true,
                             },
                         },
                     },

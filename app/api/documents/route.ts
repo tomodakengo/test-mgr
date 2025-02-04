@@ -1,21 +1,39 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { getToken } from 'next-auth/jwt'
+import { headers } from 'next/headers'
 
 const prisma = new PrismaClient()
 
 export async function POST(request: Request) {
     try {
-        // Get user from session
-        const token = await getToken({ req: request as any })
-        if (!token) {
+        // Get user from headers
+        const headersList = headers()
+        const userId = headersList.get('x-user-id')
+        if (!userId) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             )
         }
 
-        const { title, type, content, projectId, status } = await request.json()
+        const { title, type, projectId, content, status } = await request.json()
+
+        // Check if user is a member of the project
+        const projectMember = await prisma.projectMember.findUnique({
+            where: {
+                projectId_userId: {
+                    projectId,
+                    userId,
+                },
+            },
+        })
+
+        if (!projectMember) {
+            return NextResponse.json(
+                { error: 'You are not a member of this project' },
+                { status: 403 }
+            )
+        }
 
         // Create document
         const document = await prisma.document.create({
@@ -47,55 +65,27 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     try {
-        // Get user from session
-        const token = await getToken({ req: request as any })
-        if (!token) {
+        // Get user from headers
+        const headersList = headers()
+        const userId = headersList.get('x-user-id')
+        if (!userId) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             )
         }
 
-        // Get URL parameters
-        const { searchParams } = new URL(request.url)
-        const projectId = searchParams.get('projectId')
-        const type = searchParams.get('type')
-        const status = searchParams.get('status')
-        const search = searchParams.get('search')
-
-        // Build where clause
-        const where: any = {
-            project: {
-                members: {
-                    some: {
-                        userId: token.sub as string,
+        // Get documents from projects where user is a member
+        const documents = await prisma.document.findMany({
+            where: {
+                project: {
+                    members: {
+                        some: {
+                            userId,
+                        },
                     },
                 },
             },
-        }
-
-        if (projectId) {
-            where.projectId = projectId
-        }
-
-        if (type) {
-            where.type = type
-        }
-
-        if (status) {
-            where.status = status
-        }
-
-        if (search) {
-            where.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { content: { contains: search, mode: 'insensitive' } },
-            ]
-        }
-
-        // Get documents
-        const documents = await prisma.document.findMany({
-            where,
             include: {
                 project: {
                     select: {

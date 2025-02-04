@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { getToken } from 'next-auth/jwt'
+import { headers } from 'next/headers'
 
 const prisma = new PrismaClient()
 
@@ -9,9 +9,10 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        // Get user from session
-        const token = await getToken({ req: request as any })
-        if (!token) {
+        // Get user from headers
+        const headersList = headers()
+        const userId = headersList.get('x-user-id')
+        if (!userId) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
@@ -20,24 +21,13 @@ export async function GET(
 
         // Get document
         const document = await prisma.document.findUnique({
-            where: {
-                id: params.id,
-            },
+            where: { id: params.id },
             include: {
                 project: {
-                    select: {
-                        id: true,
-                        name: true,
+                    include: {
                         members: {
-                            include: {
-                                user: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        email: true,
-                                    },
-                                },
-                            },
+                            where: { userId },
+                            select: { role: true },
                         },
                     },
                 },
@@ -52,14 +42,10 @@ export async function GET(
         }
 
         // Check if user has access to the document
-        const hasAccess = document.project.members.some(
-            (member) => member.user.id === token.sub
-        )
-
-        if (!hasAccess) {
+        if (document.project.members.length === 0) {
             return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+                { error: 'You do not have access to this document' },
+                { status: 403 }
             )
         }
 
@@ -78,9 +64,10 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        // Get user from session
-        const token = await getToken({ req: request as any })
-        if (!token) {
+        // Get user from headers
+        const headersList = headers()
+        const userId = headersList.get('x-user-id')
+        if (!userId) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
@@ -89,109 +76,15 @@ export async function PUT(
 
         const { title, content, status } = await request.json()
 
-        // Get document with project members
-        const existingDocument = await prisma.document.findUnique({
-            where: {
-                id: params.id,
-            },
-            include: {
-                project: {
-                    select: {
-                        members: {
-                            include: {
-                                user: {
-                                    select: {
-                                        id: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        })
-
-        if (!existingDocument) {
-            return NextResponse.json(
-                { error: 'Document not found' },
-                { status: 404 }
-            )
-        }
-
-        // Check if user has access to the document
-        const hasAccess = existingDocument.project.members.some(
-            (member) => member.user.id === token.sub
-        )
-
-        if (!hasAccess) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            )
-        }
-
-        // Update document
-        const document = await prisma.document.update({
-            where: {
-                id: params.id,
-            },
-            data: {
-                title,
-                content,
-                status,
-                version: {
-                    increment: 1,
-                },
-            },
-            include: {
-                project: {
-                    select: {
-                        name: true,
-                    },
-                },
-            },
-        })
-
-        return NextResponse.json(document)
-    } catch (error) {
-        console.error('Document update error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        )
-    }
-}
-
-export async function DELETE(
-    request: Request,
-    { params }: { params: { id: string } }
-) {
-    try {
-        // Get user from session
-        const token = await getToken({ req: request as any })
-        if (!token) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            )
-        }
-
-        // Get document with project members
+        // Get document with project and user role
         const document = await prisma.document.findUnique({
-            where: {
-                id: params.id,
-            },
+            where: { id: params.id },
             include: {
                 project: {
-                    select: {
+                    include: {
                         members: {
-                            include: {
-                                user: {
-                                    select: {
-                                        id: true,
-                                    },
-                                },
-                            },
+                            where: { userId },
+                            select: { role: true },
                         },
                     },
                 },
@@ -206,25 +99,101 @@ export async function DELETE(
         }
 
         // Check if user has access to the document
-        const hasAccess = document.project.members.some(
-            (member) => member.user.id === token.sub && member.role === 'MANAGER'
-        )
+        if (document.project.members.length === 0) {
+            return NextResponse.json(
+                { error: 'You do not have access to this document' },
+                { status: 403 }
+            )
+        }
 
-        if (!hasAccess) {
+        // Update document
+        const updatedDocument = await prisma.document.update({
+            where: { id: params.id },
+            data: {
+                title,
+                content,
+                status,
+                version: document.version + 1,
+            },
+            include: {
+                project: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+        })
+
+        return NextResponse.json(updatedDocument)
+    } catch (error) {
+        console.error('Document update error:', error)
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        )
+    }
+}
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: { id: string } }
+) {
+    try {
+        // Get user from headers
+        const headersList = headers()
+        const userId = headersList.get('x-user-id')
+        const userRole = headersList.get('x-user-role')
+        if (!userId) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             )
         }
 
-        // Delete document
-        await prisma.document.delete({
-            where: {
-                id: params.id,
+        // Only managers can delete documents
+        if (userRole !== 'MANAGER') {
+            return NextResponse.json(
+                { error: 'Only managers can delete documents' },
+                { status: 403 }
+            )
+        }
+
+        // Get document with project and user role
+        const document = await prisma.document.findUnique({
+            where: { id: params.id },
+            include: {
+                project: {
+                    include: {
+                        members: {
+                            where: { userId },
+                            select: { role: true },
+                        },
+                    },
+                },
             },
         })
 
-        return NextResponse.json({ success: true })
+        if (!document) {
+            return NextResponse.json(
+                { error: 'Document not found' },
+                { status: 404 }
+            )
+        }
+
+        // Check if user has access to the document
+        if (document.project.members.length === 0) {
+            return NextResponse.json(
+                { error: 'You do not have access to this document' },
+                { status: 403 }
+            )
+        }
+
+        // Delete document
+        await prisma.document.delete({
+            where: { id: params.id },
+        })
+
+        return NextResponse.json({ message: 'Document deleted successfully' })
     } catch (error) {
         console.error('Document deletion error:', error)
         return NextResponse.json(
