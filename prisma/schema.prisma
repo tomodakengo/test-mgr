@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  name      String
+  role      Role      @default(MEMBER)
+  projects  ProjectMember[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  members     ProjectMember[]
+  documents   Document[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ProjectMember {
+  id        String    @id @default(uuid())
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  role      ProjectRole @default(MEMBER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([projectId, userId])
+}
+
+model Document {
+  id          String    @id @default(uuid())
+  type        DocumentType
+  title       String
+  content     String
+  version     Int       @default(1)
+  status      Status    @default(DRAFT)
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum Role {
+  SYSTEM_ADMIN
+  PROJECT_MANAGER
+  MEMBER
+  GUEST
+}
+
+enum ProjectRole {
+  MANAGER
+  MEMBER
+  GUEST
+}
+
+enum DocumentType {
+  OVERALL_TEST_PLAN
+  TEST_PLAN
+  TEST_DESIGN
+  TEST_CASE
+  TEST_LOG
+  DEFECT_REPORT
+  PROGRESS_MANAGEMENT
+  TEST_SUMMARY
+}
+
+enum Status {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  ARCHIVED
+} 
