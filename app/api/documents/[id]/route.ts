@@ -10,7 +10,7 @@ export async function GET(
 ) {
     try {
         // Get user from headers
-        const headersList = headers()
+        const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
             return NextResponse.json(
@@ -65,7 +65,7 @@ export async function PUT(
 ) {
     try {
         // Get user from headers
-        const headersList = headers()
+        const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
             return NextResponse.json(
@@ -140,7 +140,7 @@ export async function DELETE(
 ) {
     try {
         // Get user from headers
-        const headersList = headers()
+        const headersList = await headers()
         const userId = headersList.get('x-user-id')
         const userRole = headersList.get('x-user-role')
         if (!userId) {

@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 export async function POST(request: Request) {
     try {
         // Get user from headers
-        const headersList = headers()
+        const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
             return NextResponse.json(
@@ -29,10 +29,10 @@ export async function POST(request: Request) {
                             userId,
                             role: 'MANAGER',
                         },
-                        ...members.map((username: string) => ({
+                        ...members.map((email: string) => ({
                             user: {
                                 connect: {
-                                    username: username.trim(),
+                                    email: email.trim(),
                                 },
                             },
                             role: 'MEMBER',
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
                             select: {
                                 id: true,
                                 name: true,
-                                username: true,
+                                email: true,
                             },
                         },
                     },
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
     try {
         // Get user from headers
-        const headersList = headers()
+        const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
             return NextResponse.json(
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
                             select: {
                                 id: true,
                                 name: true,
-                                username: true,
+                                email: true,
                             },
                         },
                     },

@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 export async function POST(request: Request) {
     try {
         // Get user from headers
-        const headersList = headers()
+        const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
             return NextResponse.json(
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
     try {
         // Get user from headers
-        const headersList = headers()
+        const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
             return NextResponse.json(
