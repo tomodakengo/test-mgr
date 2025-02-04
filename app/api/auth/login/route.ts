@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import * as jose from 'jose'
 
 const prisma = new PrismaClient()
+const secret = new TextEncoder().encode(
+    process.env.JWT_SECRET || 'your-secret-key'
+)
+const alg = 'HS256'
 
 export async function POST(request: Request) {
     try {
@@ -31,14 +35,17 @@ export async function POST(request: Request) {
         }
 
         // Generate JWT token
-        const token = jwt.sign(
-            { userId: user.id, username: user.username, role: user.role },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '1d' }
-        )
+        const token = await new jose.SignJWT({
+            userId: user.id,
+            username: user.username,
+            role: user.role,
+        })
+            .setProtectedHeader({ alg })
+            .setExpirationTime('1d')
+            .sign(secret)
 
-        // Return user data and token
-        return NextResponse.json({
+        // Create response with token in both body and cookie
+        const response = NextResponse.json({
             user: {
                 id: user.id,
                 username: user.username,
@@ -47,6 +54,16 @@ export async function POST(request: Request) {
             },
             token,
         })
+
+        // Set cookie
+        response.cookies.set('auth-token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24, // 1 day
+        })
+
+        return response
     } catch (error) {
         console.error('Login error:', error)
         return NextResponse.json(

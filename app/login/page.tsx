@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 
 export default function Login() {
   const router = useRouter();
@@ -38,8 +37,7 @@ export default function Login() {
       }
 
       // ログイン成功時の処理
-      Cookies.set("auth-token", data.token, { expires: 1 }); // 1日後に期限切れ
-      router.push("/dashboard/documents");
+      window.location.href = "/dashboard/documents";
     } catch (err) {
       setError(err instanceof Error ? err.message : "ログインに失敗しました");
     } finally {
