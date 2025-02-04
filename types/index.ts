@@ -53,6 +53,30 @@ export interface ProjectDocument {
     }
     createdAt: Date
     updatedAt: Date
+    versions?: DocumentVersion[]
+    comments?: DocumentComment[]
+}
+
+export interface DocumentVersion {
+    id: string
+    documentId: string
+    version: number
+    title: string
+    content: string
+    status: DocumentStatus
+    createdAt: Date
+    createdBy: User
+}
+
+export interface DocumentComment {
+    id: string
+    documentId: string
+    content: string
+    createdAt: Date
+    updatedAt: Date
+    user: User
+    parentId?: string
+    replies?: DocumentComment[]
 }
 
 export interface CreateDocumentRequest {
@@ -67,6 +91,15 @@ export interface UpdateDocumentRequest {
     title: string
     content: string
     status: DocumentStatus
+}
+
+export interface CreateCommentRequest {
+    content: string
+    parentId?: string
+}
+
+export interface UpdateCommentRequest {
+    content: string
 }
 
 // API Response types

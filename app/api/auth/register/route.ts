@@ -1,45 +1,66 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { hash } from 'bcryptjs'
+import { ApiResponse, User, ApiError } from '@/types'
 
 const prisma = new PrismaClient()
 
+export interface RegisterRequest {
+    name: string
+    email: string
+    password: string
+}
+
 export async function POST(request: Request) {
     try {
-        const { username, name, password } = await request.json()
+        const { name, email, password }: RegisterRequest = await request.json()
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
-            where: { username },
+            where: { email },
         })
 
         if (existingUser) {
-            return NextResponse.json(
-                { error: 'Username already taken' },
-                { status: 400 }
+            const response: ApiError = { error: 'User already exists' }
+            return new NextResponse(
+                JSON.stringify(response),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
         // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10)
+        const hashedPassword = await hash(password, 12)
 
-        // Create new user
+        // Create user
         const user = await prisma.user.create({
             data: {
-                username,
                 name,
+                email,
                 password: hashedPassword,
-                role: 'MEMBER', // Default role
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
             },
         })
 
+        const response: ApiResponse<User> = { data: user }
+        return new NextResponse(
+            JSON.stringify(response),
+            { status: 201, headers: { 'Content-Type': 'application/json' } }
+        )
+    } catch (error) {
+        console.error('Registration error:', error)
+        const response: ApiError = { error: 'Internal server error' }
+        return new NextResponse(
+            JSON.stringify(response),
         // Generate JWT token
         const token = jwt.sign(
-            { userId: user.id, username: user.username, role: user.role },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '1d' }
-        )
+                { userId: user.id, username: user.username, role: user.role },
+                process.env.JWT_SECRET || 'your-secret-key',
+                { expiresIn: '1d' }
+            )
 
         // Return user data and token
         return NextResponse.json({

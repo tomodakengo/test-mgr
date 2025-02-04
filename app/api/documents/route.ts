@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 import { headers } from 'next/headers'
+import {
+    ApiResponse,
+    ProjectDocument,
+    CreateDocumentRequest,
+    ApiError
+} from '@/types'
 
 const prisma = new PrismaClient()
 
@@ -10,13 +16,14 @@ export async function POST(request: Request) {
         const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
+            const response: ApiError = { error: 'Unauthorized' }
             return new NextResponse(
-                JSON.stringify({ error: 'Unauthorized' }),
+                JSON.stringify(response),
                 { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
-        const { title, type, projectId, content, status } = await request.json()
+        const { title, type, projectId, content, status }: CreateDocumentRequest = await request.json()
 
         // Check if user is a member of the project
         const projectMember = await prisma.projectMember.findUnique({
@@ -29,8 +36,9 @@ export async function POST(request: Request) {
         })
 
         if (!projectMember) {
+            const response: ApiError = { error: 'You are not a member of this project' }
             return new NextResponse(
-                JSON.stringify({ error: 'You are not a member of this project' }),
+                JSON.stringify(response),
                 { status: 403, headers: { 'Content-Type': 'application/json' } }
             )
         }
@@ -43,6 +51,7 @@ export async function POST(request: Request) {
                 content,
                 status,
                 projectId,
+                version: 1,
             },
             include: {
                 project: {
@@ -53,11 +62,18 @@ export async function POST(request: Request) {
             },
         })
 
-        return NextResponse.json(document)
+        const response: ApiResponse<ProjectDocument> = {
+            data: document as unknown as ProjectDocument
+        }
+        return new NextResponse(
+            JSON.stringify(response),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
     } catch (error) {
         console.error('Document creation error:', error)
+        const response: ApiError = { error: 'Internal server error' }
         return new NextResponse(
-            JSON.stringify({ error: 'Internal server error' }),
+            JSON.stringify(response),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
@@ -69,8 +85,9 @@ export async function GET(request: Request) {
         const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
+            const response: ApiError = { error: 'Unauthorized' }
             return new NextResponse(
-                JSON.stringify({ error: 'Unauthorized' }),
+                JSON.stringify(response),
                 { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
@@ -99,11 +116,18 @@ export async function GET(request: Request) {
             },
         })
 
-        return NextResponse.json(documents)
+        const response: ApiResponse<ProjectDocument[]> = {
+            data: documents as unknown as ProjectDocument[]
+        }
+        return new NextResponse(
+            JSON.stringify(response),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
     } catch (error) {
         console.error('Document fetch error:', error)
+        const response: ApiError = { error: 'Internal server error' }
         return new NextResponse(
-            JSON.stringify({ error: 'Internal server error' }),
+            JSON.stringify(response),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
