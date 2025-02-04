@@ -1,6 +1,58 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function NewProject() {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("project-name") as string;
+    const description = formData.get("description") as string;
+    const teamMembers = (formData.get("team-members") as string)
+      .split(",")
+      .map((email) => email.trim())
+      .filter((email) => email !== "");
+    const isPrivate = formData.get("access-control") === "private";
+
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          members: teamMembers,
+          isPrivate,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "プロジェクトの作成に失敗しました");
+      }
+
+      router.push("/dashboard/projects");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "プロジェクトの作成に失敗しました"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -12,7 +64,19 @@ export default function NewProject() {
         </p>
       </div>
 
-      <form className="space-y-8 divide-y divide-gray-200">
+      {error && (
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+
+      <form
+        className="space-y-8 divide-y divide-gray-200"
+        onSubmit={handleSubmit}
+      >
         <div className="space-y-8 divide-y divide-gray-200">
           <div>
             <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
@@ -28,6 +92,7 @@ export default function NewProject() {
                     type="text"
                     name="project-name"
                     id="project-name"
+                    required
                     className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                     placeholder="Enter project name"
                   />
@@ -95,6 +160,8 @@ export default function NewProject() {
                       id="private"
                       name="access-control"
                       type="radio"
+                      value="private"
+                      defaultChecked
                       className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
                     />
                     <label
@@ -109,6 +176,7 @@ export default function NewProject() {
                       id="public"
                       name="access-control"
                       type="radio"
+                      value="public"
                       className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
                     />
                     <label
@@ -134,9 +202,10 @@ export default function NewProject() {
             </Link>
             <button
               type="submit"
-              className="inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              disabled={loading}
+              className="inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50"
             >
-              Create project
+              {loading ? "作成中..." : "Create project"}
             </button>
           </div>
         </div>

@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const documentTypes = [
   { name: "Overall Test Plan", value: "OVERALL_TEST_PLAN" },
@@ -12,41 +16,76 @@ const documentTypes = [
 ];
 
 export default function EditDocument({ params }: { params: { id: string } }) {
-  // このデータは実際にはAPIから取得します
-  const document = {
-    id: params.id,
-    title: "E-commerce Platform Test Plan v2.0",
-    type: "OVERALL_TEST_PLAN",
-    content: `# Overall Test Plan
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [document, setDocument] = useState<any>(null);
 
-## 1. Introduction
-This test plan outlines the testing approach for the e-commerce platform.
+  useEffect(() => {
+    const fetchDocument = async () => {
+      try {
+        const response = await fetch(`/api/documents/${params.id}`);
+        const data = await response.json();
 
-## 2. Test Objectives
-- Ensure all core functionalities work as expected
-- Verify system performance under load
-- Validate security measures
+        if (!response.ok) {
+          throw new Error(data.error || "ドキュメントの取得に失敗しました");
+        }
 
-## 3. Test Strategy
-### 3.1 Unit Testing
-- Component level testing
-- Integration points verification
+        setDocument(data);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "ドキュメントの取得に失敗しました"
+        );
+      }
+    };
 
-### 3.2 Integration Testing
-- API endpoints testing
-- Third-party service integration
+    fetchDocument();
+  }, [params.id]);
 
-### 3.3 Performance Testing
-- Load testing
-- Stress testing
-- Scalability testing`,
-    status: "IN_REVIEW",
-    version: 2,
-    project: {
-      id: 1,
-      name: "E-commerce Platform",
-    },
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const title = formData.get("title") as string;
+    const content = formData.get("content") as string;
+    const status = formData.get("status") as string;
+
+    try {
+      const response = await fetch(`/api/documents/${params.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          content,
+          status,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "ドキュメントの更新に失敗しました");
+      }
+
+      router.push(`/dashboard/documents/${params.id}`);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "ドキュメントの更新に失敗しました"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (!document) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -59,7 +98,19 @@ This test plan outlines the testing approach for the e-commerce platform.
         </p>
       </div>
 
-      <form className="space-y-8 divide-y divide-gray-200">
+      {error && (
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+
+      <form
+        className="space-y-8 divide-y divide-gray-200"
+        onSubmit={handleSubmit}
+      >
         <div className="space-y-8 divide-y divide-gray-200">
           <div>
             <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
@@ -75,6 +126,7 @@ This test plan outlines the testing approach for the e-commerce platform.
                     type="text"
                     name="title"
                     id="title"
+                    required
                     defaultValue={document.title}
                     className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                   />
@@ -142,6 +194,7 @@ This test plan outlines the testing approach for the e-commerce platform.
                     id="content"
                     name="content"
                     rows={20}
+                    required
                     defaultValue={document.content}
                     className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                   />
@@ -168,6 +221,7 @@ This test plan outlines the testing approach for the e-commerce platform.
                       id="draft"
                       name="status"
                       type="radio"
+                      value="DRAFT"
                       defaultChecked={document.status === "DRAFT"}
                       className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
                     />
@@ -183,6 +237,7 @@ This test plan outlines the testing approach for the e-commerce platform.
                       id="in-review"
                       name="status"
                       type="radio"
+                      value="IN_REVIEW"
                       defaultChecked={document.status === "IN_REVIEW"}
                       className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
                     />
@@ -198,6 +253,7 @@ This test plan outlines the testing approach for the e-commerce platform.
                       id="approved"
                       name="status"
                       type="radio"
+                      value="APPROVED"
                       defaultChecked={document.status === "APPROVED"}
                       className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
                     />
@@ -213,6 +269,7 @@ This test plan outlines the testing approach for the e-commerce platform.
                       id="archived"
                       name="status"
                       type="radio"
+                      value="ARCHIVED"
                       defaultChecked={document.status === "ARCHIVED"}
                       className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-600"
                     />
@@ -239,9 +296,10 @@ This test plan outlines the testing approach for the e-commerce platform.
             </Link>
             <button
               type="submit"
-              className="inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              disabled={loading}
+              className="inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50"
             >
-              Save changes
+              {loading ? "保存中..." : "Save changes"}
             </button>
           </div>
         </div>
