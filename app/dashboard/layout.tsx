@@ -1,12 +1,15 @@
+"use client";
+
 import { Fragment } from "react";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", current: true },
-  { name: "Projects", href: "/dashboard/projects", current: false },
-  { name: "Documents", href: "/dashboard/documents", current: false },
+  { name: "Dashboard", href: "/dashboard" },
+  { name: "Projects", href: "/dashboard/projects" },
+  { name: "Documents", href: "/dashboard/documents" },
 ];
 
 function classNames(...classes: string[]) {
@@ -18,6 +21,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Disclosure as="nav" className="bg-white shadow-sm">
@@ -40,7 +45,7 @@ export default function DashboardLayout({
                         key={item.name}
                         href={item.href}
                         className={classNames(
-                          item.current
+                          pathname === item.href
                             ? "border-blue-500 text-gray-900"
                             : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700",
                           "inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium"
@@ -53,12 +58,10 @@ export default function DashboardLayout({
                 </div>
                 <div className="hidden sm:ml-6 sm:flex sm:items-center">
                   <Menu as="div" className="relative ml-3">
-                    <div>
-                      <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                        <span className="sr-only">Open user menu</span>
-                        <div className="h-8 w-8 rounded-full bg-gray-200" />
-                      </Menu.Button>
-                    </div>
+                    <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                      <span className="sr-only">Open user menu</span>
+                      <div className="h-8 w-8 rounded-full bg-gray-200" />
+                    </Menu.Button>
                     <Transition
                       as={Fragment}
                       enter="transition ease-out duration-200"
@@ -71,41 +74,45 @@ export default function DashboardLayout({
                       <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                         <Menu.Item>
                           {({ active }) => (
-                            <a
-                              href="#"
+                            <Link
+                              href="/dashboard/profile"
                               className={classNames(
                                 active ? "bg-gray-100" : "",
                                 "block px-4 py-2 text-sm text-gray-700"
                               )}
                             >
                               Your Profile
-                            </a>
+                            </Link>
                           )}
                         </Menu.Item>
                         <Menu.Item>
                           {({ active }) => (
-                            <a
-                              href="#"
+                            <Link
+                              href="/dashboard/settings"
                               className={classNames(
                                 active ? "bg-gray-100" : "",
                                 "block px-4 py-2 text-sm text-gray-700"
                               )}
                             >
                               Settings
-                            </a>
+                            </Link>
                           )}
                         </Menu.Item>
                         <Menu.Item>
                           {({ active }) => (
-                            <a
-                              href="#"
+                            <button
+                              onClick={() => {
+                                document.cookie =
+                                  "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+                                window.location.href = "/login";
+                              }}
                               className={classNames(
                                 active ? "bg-gray-100" : "",
-                                "block px-4 py-2 text-sm text-gray-700"
+                                "block w-full text-left px-4 py-2 text-sm text-gray-700"
                               )}
                             >
                               Sign out
-                            </a>
+                            </button>
                           )}
                         </Menu.Item>
                       </Menu.Items>
@@ -128,19 +135,18 @@ export default function DashboardLayout({
             <Disclosure.Panel className="sm:hidden">
               <div className="space-y-1 pb-3 pt-2">
                 {navigation.map((item) => (
-                  <Disclosure.Button
+                  <Link
                     key={item.name}
-                    as="a"
                     href={item.href}
                     className={classNames(
-                      item.current
+                      pathname === item.href
                         ? "bg-blue-50 border-blue-500 text-blue-700"
                         : "border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800",
                       "block border-l-4 py-2 pl-3 pr-4 text-base font-medium"
                     )}
                   >
                     {item.name}
-                  </Disclosure.Button>
+                  </Link>
                 ))}
               </div>
               <div className="border-t border-gray-200 pb-3 pt-4">
@@ -158,27 +164,28 @@ export default function DashboardLayout({
                   </div>
                 </div>
                 <div className="mt-3 space-y-1">
-                  <Disclosure.Button
-                    as="a"
-                    href="#"
+                  <Link
+                    href="/dashboard/profile"
                     className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                   >
                     Your Profile
-                  </Disclosure.Button>
-                  <Disclosure.Button
-                    as="a"
-                    href="#"
+                  </Link>
+                  <Link
+                    href="/dashboard/settings"
                     className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                   >
                     Settings
-                  </Disclosure.Button>
-                  <Disclosure.Button
-                    as="a"
-                    href="#"
-                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                  </Link>
+                  <button
+                    onClick={() => {
+                      document.cookie =
+                        "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+                      window.location.href = "/login";
+                    }}
+                    className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                   >
                     Sign out
-                  </Disclosure.Button>
+                  </button>
                 </div>
               </div>
             </Disclosure.Panel>
