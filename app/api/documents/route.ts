@@ -10,9 +10,9 @@ export async function POST(request: Request) {
         const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Unauthorized' }),
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -29,9 +29,9 @@ export async function POST(request: Request) {
         })
 
         if (!projectMember) {
-            return NextResponse.json(
-                { error: 'You are not a member of this project' },
-                { status: 403 }
+            return new NextResponse(
+                JSON.stringify({ error: 'You are not a member of this project' }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -56,9 +56,9 @@ export async function POST(request: Request) {
         return NextResponse.json(document)
     } catch (error) {
         console.error('Document creation error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
+        return new NextResponse(
+            JSON.stringify({ error: 'Internal server error' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
 }
@@ -69,9 +69,9 @@ export async function GET(request: Request) {
         const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Unauthorized' }),
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -102,9 +102,9 @@ export async function GET(request: Request) {
         return NextResponse.json(documents)
     } catch (error) {
         console.error('Document fetch error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
+        return new NextResponse(
+            JSON.stringify({ error: 'Internal server error' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
 } 

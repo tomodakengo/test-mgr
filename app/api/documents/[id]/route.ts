@@ -13,9 +13,9 @@ export async function GET(
         const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Unauthorized' }),
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -35,26 +35,26 @@ export async function GET(
         })
 
         if (!document) {
-            return NextResponse.json(
-                { error: 'Document not found' },
-                { status: 404 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Document not found' }),
+                { status: 404, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
         // Check if user has access to the document
         if (document.project.members.length === 0) {
-            return NextResponse.json(
-                { error: 'You do not have access to this document' },
-                { status: 403 }
+            return new NextResponse(
+                JSON.stringify({ error: 'You do not have access to this document' }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
         return NextResponse.json(document)
     } catch (error) {
         console.error('Document fetch error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
+        return new NextResponse(
+            JSON.stringify({ error: 'Internal server error' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
 }
@@ -68,9 +68,9 @@ export async function PUT(
         const headersList = await headers()
         const userId = headersList.get('x-user-id')
         if (!userId) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Unauthorized' }),
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -92,17 +92,17 @@ export async function PUT(
         })
 
         if (!document) {
-            return NextResponse.json(
-                { error: 'Document not found' },
-                { status: 404 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Document not found' }),
+                { status: 404, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
         // Check if user has access to the document
         if (document.project.members.length === 0) {
-            return NextResponse.json(
-                { error: 'You do not have access to this document' },
-                { status: 403 }
+            return new NextResponse(
+                JSON.stringify({ error: 'You do not have access to this document' }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -127,9 +127,9 @@ export async function PUT(
         return NextResponse.json(updatedDocument)
     } catch (error) {
         console.error('Document update error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
+        return new NextResponse(
+            JSON.stringify({ error: 'Internal server error' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
 }
@@ -144,17 +144,17 @@ export async function DELETE(
         const userId = headersList.get('x-user-id')
         const userRole = headersList.get('x-user-role')
         if (!userId) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Unauthorized' }),
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
         // Only managers can delete documents
         if (userRole !== 'MANAGER') {
-            return NextResponse.json(
-                { error: 'Only managers can delete documents' },
-                { status: 403 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Only managers can delete documents' }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -174,17 +174,17 @@ export async function DELETE(
         })
 
         if (!document) {
-            return NextResponse.json(
-                { error: 'Document not found' },
-                { status: 404 }
+            return new NextResponse(
+                JSON.stringify({ error: 'Document not found' }),
+                { status: 404, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
         // Check if user has access to the document
         if (document.project.members.length === 0) {
-            return NextResponse.json(
-                { error: 'You do not have access to this document' },
-                { status: 403 }
+            return new NextResponse(
+                JSON.stringify({ error: 'You do not have access to this document' }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
@@ -196,9 +196,9 @@ export async function DELETE(
         return NextResponse.json({ message: 'Document deleted successfully' })
     } catch (error) {
         console.error('Document deletion error:', error)
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
+        return new NextResponse(
+            JSON.stringify({ error: 'Internal server error' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
 } 
